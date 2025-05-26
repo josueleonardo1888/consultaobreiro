@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Consulta de Credencial</title>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    #form-container, #dados-container, #bloqueado-container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    label { display: block; margin: 10px 0 5px; }
+    input[type=text] { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 15px; padding: 10px 20px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #0056b3; }
+    .hidden { display: none; }
+</style>
+</head>
+<body>
+<h2>Consulta de Credencial</h2>
+<div id="form-container">
+    <p>Digite CPF e Telefone para acessar os dados.</p>
+    <label for="cpf">CPF:</label>
+    <input type="text" id="cpf" maxlength="11" placeholder="Somente números" />
+    <label for="telefone">Telefone:</label>
+    <input type="text" id="telefone" maxlength="11" placeholder="Somente números" />
+    <button id="btn-entrar">Entrar</button>
+    <p id="msg-error" style="color:red;"></p>
+</div>
+<div id="dados-container" class="hidden">
+    <h3>Dados da Pessoa</h3>
+    <p><strong>ID:</strong> <span id="p-id"></span></p>
+    <p><strong>Nome:</strong> <span id="p-nome"></span></p>
+    <p><strong>CPF:</strong> <span id="p-cpf"></span></p>
+    <p><strong>Telefone:</strong> <span id="p-telefone"></span></p>
+    <p><strong>Cargo:</strong> <span id="p-cargo"></span></p>
+    <p><strong>Situação:</strong> <span id="p-situacao"></span></p>
+    <p><strong>Validade da Credencial:</strong> <span id="p-validade"></span></p>
+    <p><strong>Observação:</strong> <span id="p-observacao"></span></p>
+</div>
+<div id="bloqueado-container" class="hidden">
+    <h3>Acesso bloqueado</h3>
+    <p>Por segurança bloqueamos a sua pesquisa. Entre em contato com a central:</p>
+    <p><strong>Telefone: 2424527819</strong></p>
+</div>
+<script>
+// Função para pegar parâmetro da URL
+function getParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+}
+// Validar CPF simples (11 dígitos numéricos)
+function validarCPF(cpf) {
+    return /^[0-9]{11}$/.test(cpf);
+}
+// Validar telefone simples (11 dígitos numéricos)
+function validarTelefone(tel) {
+    return /^[0-9]{10,11}$/.test(tel);
+}
+// Mostrar apenas últimos 3 números do CPF
+function mascararCPF(cpf) {
+    return '***.***.***-' + cpf.slice(-3);
+}
+
+let tentativas = 0;
+const maxTentativas = 3;
+const idPessoa = getParam('id');
+const dadosUrl = 'dados.json';
+let dados = null;
+
+const formContainer = document.getElementById('form-container');
+const dadosContainer = document.getElementById('dados-container');
+const bloqueadoContainer = document.getElementById('bloqueado-container');
+const msgError = document.getElementById('msg-error');
+
+// Buscar dados da pessoa pelo id
+async function buscarDados() {
+    try {
+        const res = await fetch(dadosUrl);
+        const json = await res.json();
+        if(json[idPessoa]) {
+            dados = json[idPessoa];
+        } else {
+            msgError.textContent = 'ID não encontrado.';
+            formContainer.style.display = 'none';
+        }
+    } catch(e) {
+        msgError.textContent = 'Erro ao carregar dados.';
+        formContainer.style.display = 'none';
+    }
+}
+// Mostrar dados na tela
+function mostrarDados() {
+    document.getElementById('p-id').textContent = dados.id;
+    document.getElementById('p-nome').textContent = dados.nome;
+    document.getElementById('p-cpf').textContent = mascararCPF(dados.cpf);
+    document.getElementById('p-telefone').textContent = dados.telefone;
+    document.getElementById('p-cargo').textContent = dados.cargo;
+    document.getElementById('p-situacao').textContent = dados.situacao;
+    document.getElementById('p-validade').textContent = dados.validade;
+    document.getElementById('p-observacao').textContent = dados.observacao;
+}
+// Tratar clique no botão Entrar
+document.getElementById('btn-entrar').addEventListener('click', () => {
+    msgError.textContent = '';
+    const cpfInput = document.getElementById('cpf').value.trim();
+    const telInput = document.getElementById('telefone').value.trim();
+    if(!validarCPF(cpfInput)) {
+        msgError.textContent = 'CPF inválido. Digite 11 números.';
+        return;
+    }
+    if(!validarTelefone(telInput)) {
+        msgError.textContent = 'Telefone inválido. Digite 10 ou 11 números.';
+        return;
+    }
+    if(!dados) {
+        msgError.textContent = 'Dados não carregados.';
+        return;
+    }
+    if(cpfInput === dados.cpf && telInput === dados.telefone) {
+        formContainer.classList.add('hidden');
+        mostrarDados();
+        dadosContainer.classList.remove('hidden');
+    } else {
+        tentativas++;
+        if(tentativas >= maxTentativas) {
+            formContainer.classList.add('hidden');
+            bloqueadoContainer.classList.remove('hidden');
+        } else {
+            msgError.textContent = 'CPF ou telefone incorretos. Tentativa ' + tentativas + ' de ' + maxTentativas + '.';
+        }
+    }
+});
+
+// Carregar dados assim que abrir a página
+buscarDados();
+</script>
+</body>
+</html>

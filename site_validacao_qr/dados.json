@@ -1,0 +1,13 @@
+
+{
+    "001": {
+        "id": "001",
+        "nome": "João Silva",
+        "cpf": "12345678901",
+        "telefone": "21999998888",
+        "cargo": "Auxiliar Administrativo",
+        "situacao": "Ativo",
+        "validade": "12/2025",
+        "observacao": "Nenhuma"
+    }
+}
